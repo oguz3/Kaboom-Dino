@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>kaboom</title>
+		<meta charset="utf-8" />
+		<style>
+			* {
+				margin: 0;
+			}
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			canvas {
+				display: block;
+			}
+		</style>
+	</head>
+
+	<body>
+		<script src="https://kaboomjs.com/lib/0.5.0/kaboom.js"></script>
+		<script>
+			kaboom({
+				fullscreen: true,
+				scale: 2,
+				startScene: "main",
+				version: "0.5.0",
+				clearColor: [0, 0, 0, 1],
+				global: true,
+			});
+			loadSprite("wall", "sprites/stone.png");
+			loadSprite("right-plate", "sprites/arrow_plate_right.png");
+			loadSprite("worm", "sprites/worm_walk_anim.png", {
+				sliceX: 6,
+				sliceY: 1,
+				anims: {
+					run: { from: 0, to: 5 },
+				},
+			});
+			loadSprite("dino", "sprites/DinoSprites - mort.png", {
+				sliceX: 24,
+				sliceY: 1,
+				anims: {
+					idle: { from: 0, to: 2 },
+					run: { from: 19, to: 23 },
+					dead: { from: 11, to: 16 },
+				},
+			});
+
+			scene("main", () => {
+				gravity(980);
+				layer(["obj", "ui"], "obj");
+
+				const map = addLevel(
+					[
+						"                             ",
+						"                             ",
+						"                             ",
+						"                          >  ",
+						"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+					],
+					{
+						width: 16,
+						height: 16,
+						pos: vec2(0, 0),
+						//"^": [sprite("space-invader"), scale(0.7), "space-invader"],
+						"!": [sprite("wall"), "wall", solid()],
+						">": [sprite("right-plate"), "right-plate", body()],
+					},
+				);
+
+				const player = add([
+					sprite("dino", {
+						animSpeed: 0.1,
+					}),
+					scale(1.4),
+					pos(map.getPos(2, 0)),
+					body(),
+					origin("center"),
+					{
+						speed: 160,
+						jumpForce: 320,
+					},
+				]);
+
+				const worm = add([
+					sprite("worm", {
+						animSpeed: 0.1,
+					}),
+					scale(1),
+					pos(map.getPos(20, 0)),
+					body(),
+					origin("center"),
+					{
+						speed: 10,
+					},
+				]);
+
+				player.play("idle");
+
+				function respawn() {
+					player.pos = vec2(0, 0);
+				}
+
+				keyDown(["left", "right"], () => {
+					if (player.grounded() && player.curAnim() !== "run") {
+						player.play("run");
+					}
+				});
+
+				keyRelease(["left", "right"], () => {
+					if (!keyIsDown("right") && !keyIsDown("left")) {
+						player.play("idle");
+					}
+				});
+
+				keyPress("space", () => {
+					if (player.grounded()) {
+						player.jump(player.jumpForce);
+					}
+				});
+
+				keyDown("left", () => {
+					player.flipX(-1);
+					player.move(-player.speed, 0);
+				});
+
+				keyDown("right", () => {
+					player.flipX(1);
+					player.move(player.speed, 0);
+				});
+
+				player.action(() => {
+					camPos(player.pos);
+				});
+
+				player.action(() => {
+					if (player.pos.y >= 200) {
+						respawn();
+					}
+				});
+
+				player.collides("right-plate", () => {
+					camShake(4);
+				});
+
+				worm.action(() => {
+					worm.move(-worm.speed, 0);
+					if (worm.curAnim() !== "run") {
+						worm.play("run");
+					}
+				});
+			});
+			start("main");
+		</script>
+	</body>
+</html>
