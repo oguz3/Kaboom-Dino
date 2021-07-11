@@ -38,41 +38,73 @@ loadSprite("dino", "sprites/DinoSprites - mort.png", {
 	},
 });
 
-scene("main", () => {
+scene("game", ({ level }) => {
 	gravity(980);
 	layers(["bg", "obj", "ui"], "obj");
 	camIgnore(["ui", "bg"]);
 
 	add([sprite("bg"), scale(width() / 1000, height() / 750), layer("bg")]);
 
-	const map = addLevel(
+	const maps = [
 		[
 			"                             ",
 			"                        ==   ",
 			"                    =        ",
-			"                =            ",
+			"                             ",
 			"        ==     ==^         ^ ",
 			"<--------------------------->",
-		],
-		{
-			width: 31,
-			height: 32,
-			pos: vec2(0, height() - 78),
-			//"^": [sprite("space-invader"), scale(0.7), "space-invader"],
-			"<": [sprite("ground-l"), solid()],
-			"-": [sprite("ground"), solid()],
-			">": [sprite("ground-r"), solid()],
-			"^": [sprite("grass"), "grass", body()],
-			"=": [sprite("crate"), solid()],
-		},
-	);
+		]
+	];
+
+	const levelConfig = {
+		width: 31,
+		height: 32,
+		pos: vec2(0, height() - 78),
+		//"^": [sprite("space-invader"), scale(0.7), "space-invader"],
+		"<": [sprite("ground-l"), "block", solid()],
+		"-": [sprite("ground"), solid()],
+		">": [sprite("ground-r"), "block", solid()],
+		"^": [sprite("grass"), "grass", "block", body()],
+		"=": [sprite("crate"), "crate", "block", solid()],
+	};
+
+	const map = addLevel(maps[level], levelConfig);
+
+	function small() {
+		let timer = 0
+		let isSmall= false
+		return {
+		  update() {
+			if (isSmall) {
+			  timer -=dt()
+			  if (timer <=0) {
+				this.normalify()
+			  }
+			}
+		  },
+		  isBig() {
+			return isSmall
+		  },
+		  smallify(time) {
+			this.scale = 0.8
+			timer = time
+			isSmall = true
+		  },
+		  normalify() {
+			this.scale = 1.4
+			timer = 0
+			isSmall = false
+		  },
+		}
+	  }
 
 	const player = add([
 		sprite("dino", {
 			animSpeed: 0.1,
 		}),
 		scale(1.4),
-		pos(map.getPos(2, 0)),
+		small(),
+		pos(map.getPos(2, -4)),
 		body(),
 		origin("center"),
 		{
@@ -87,13 +119,37 @@ scene("main", () => {
 			animSpeed: 0.1,
 		}),
 		scale(1),
-		pos(map.getPos(19, -1)),
+		solid(),
+		pos(
+			map.getPos(
+				Math.floor(Math.random() * 20) + 1,
+				Math.floor(Math.random() + Math.floor(Math.random() * 4) + 1),
+			),
+		),
 		origin("center"),
 		"coin",
 	]);
 
+	for (let i = 0; i < Math.floor(Math.random() * 5) + 1; i++) {
+		add([
+			sprite("crate"),
+			solid(),
+			scale(1),
+			pos(
+				map.getPos(
+					Math.floor(Math.random() * 20) + 1,
+					Math.random() + Math.floor(Math.random() * 3),
+				),
+			),
+			origin("center"),
+			"crate",
+			"block",
+		]);
+	}
+
 	const score = add([
 		text(`score: ${0}`, 18),
+		color(rgb(0, 0, 0)),
 		layer("ui"),
 		pos(width() - 86, 24),
 		origin("center"),
@@ -106,25 +162,33 @@ scene("main", () => {
 	// 	layer("ui"),
 	// 	pos(12, 12),
 	// ]);
-
-	const worm = add([
-		sprite("worm", {
-			animSpeed: 0.1,
-		}),
-		scale(1),
-		pos(map.getPos(21, 0)),
-		body(),
-		origin("center"),
-		{
-			speed: 10,
-		},
-		"worm",
-	]);
-
-	let heart = [];
-	for (let i = 0; i < player.heart; i++) {
-		heart.push(add([sprite("heart"), layer("ui"), pos(12 + i * 18, 12)]));
+	let worms = [];
+	for (let i = 0; i < Math.floor(Math.random() * 15) + 1; i++) {
+		worms.push(
+			add([
+				sprite("worm", {
+					animSpeed: 0.1,
+				}),
+				scale(1),
+				pos(map.getPos(Math.floor(Math.random() * 20) + 1, 5)),
+				body(),
+				origin("center"),
+				{
+					speed: 10,
+				},
+				"worm",
+			]),
+		);
 	}
+
+	add([sprite("heart"),scale(2), layer("ui"), pos(12, 12)])
+	const heart = add([
+		text(player.heart, 16),
+		color(rgb(0, 0, 0)),
+		layer("ui"),
+		pos(56, 30),
+		origin("center"),
+	]);
 
 	player.play("idle");
 	coin.play("idle");
@@ -133,10 +197,6 @@ scene("main", () => {
 		score.value = 0;
 		player.heart = 3;
 		player.pos = vec2(0, 0);
-		heart = [];
-		for (let i = 0; i < player.heart; i++) {
-			heart.push(add([sprite("heart"), layer("ui"), pos(12 + i * 18, 12)]));
-		}
 	}
 
 	keyDown(["left", "right"], () => {
@@ -167,12 +227,17 @@ scene("main", () => {
 		player.move(player.speed, 0);
 	});
 
-	player.action(() => {
-		camPos(player.pos);
+	keyDown("shift", () => {
+		player.smallify(3)
 	});
 
 	player.action(() => {
-		if (player.pos.y >= 600 || player.heart <= 0) {
+		camPos(player.pos);
+		heart.text = player.heart
+	});
+
+	player.action(() => {
+		if (player.pos.y >= 800 || player.heart <= 0) {
 			respawn();
 		}
 	});
@@ -181,24 +246,29 @@ scene("main", () => {
 		destroy(b);
 		score.value += 10;
 		score.text = `score: ${score.value}`;
+		go("game", {
+			level: level++ % maps.length,
+		});
 	});
 
 	player.collides("worm", () => {
-		camShake(4);
+		camShake(8);
 		player.heart--;
-		destroy(heart[player.heart]);
 	});
 
-	worm.action(() => {
-		worm.move(worm.speed, 0);
-		if (worm.curAnim() !== "run") {
-			worm.play("run");
-		}
-	});
+	worms.forEach((worm) => {
+		worm.action(() => {
+			worm.move(worm.speed, 0);
+			if (worm.curAnim() !== "run") {
+				worm.play("run");
+			}
+		});
 
-	worm.collides("grass", () => {
-		player.flipX(-1);
-		worm.speed = -worm.speed;
+		worm.collides("block", () => {
+			worm.flipX(-1);
+			worm.speed = -worm.speed;
+		});
 	});
 });
-start("main");
+
+start("game", { level: 0 });
