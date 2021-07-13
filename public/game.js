@@ -46,12 +46,57 @@ loadSprite("portal", "sprites/Purple-Portal-Sprite-Sheet.png", {
 	},
 });
 
-scene("game", ({ level }) => {
+loadSprite("space", "sprites/Space-Key.png", {
+	sliceX: 2,
+	sliceY: 1,
+	anims: {
+		press: { from: 0, to: 1 },
+	},
+});
+
+loadSprite("shift", "sprites/Shift-Key.png", {
+	sliceX: 2,
+	sliceY: 1,
+	anims: {
+		press: { from: 0, to: 1 },
+	},
+});
+
+scene("game", ({ level=0, scoreValue=0 }) => {
 	gravity(980);
 	layers(["bg", "obj", "ui"], "obj");
 	camIgnore(["ui", "bg"]);
 
 	add([sprite("bg"), scale(width() / 1000, height() / 750), layer("bg")]);
+
+	const space = add([
+		sprite("space", {
+			animSpeed: 0.4,
+		}), 
+		layer("ui"), 
+		pos(6, 62), 
+		scale(0.7)
+	]);
+	add([
+		text(`Jump`, 8),
+		color(rgb(0, 0, 0)),
+		layer("ui"),
+		pos(58, 71), 
+	])
+	const shift = add([
+		sprite("shift", {
+			animSpeed: 0.4,
+		}), 
+		layer("ui"), 
+		pos(6, 88), 
+		scale(0.7)
+	]);
+	add([
+		text(`Little Dino`, 8),
+		color(rgb(0, 0, 0)),
+		layer("ui"),
+		pos(46, 97), 
+	])
 
 	const maps = [
 		[
@@ -171,12 +216,12 @@ scene("game", ({ level }) => {
 	}
 
 	const score = add([
-		text(`score: ${0}`, 18),
+		text(`score: ${scoreValue}`, 18),
 		color(rgb(0, 0, 0)),
 		layer("ui"),
 		pos(width() - 86, 24),
 		origin("center"),
-		{ value: 0 },
+		{ value: scoreValue },
 	]);
 
 	// const heart = add([
@@ -216,6 +261,8 @@ scene("game", ({ level }) => {
 	player.play("idle");
 	//coin.play("idle");
 	portal.play("idle");
+	space.play("press");
+	shift.play("press");
 
 	function respawn() {
 		score.value = 0;
@@ -262,7 +309,8 @@ scene("game", ({ level }) => {
 
 	player.action(() => {
 		if (player.pos.y >= 800 || player.heart <= 0) {
-			respawn();
+			// respawn();
+			go("end", score.value);
 		}
 	});
 
@@ -278,6 +326,7 @@ scene("game", ({ level }) => {
 			score.text = `score: ${score.value}`;
 			go("game", {
 				level: level++ % maps.length,
+				scoreValue: score.value
 			});
 		}, 690)
 	});
@@ -299,6 +348,25 @@ scene("game", ({ level }) => {
 			worm.flipX(-1);
 			worm.speed = -worm.speed;
 		});
+	});
+});
+
+scene("end", (score) => {
+	add([
+		text(`${score}`, 64),
+		pos(width() / 2, height() / 2),
+		origin("center"),
+	]);
+
+	add([
+		text(`Press R`, 16),
+		pos(width() / 2, height() / 2 + 64),
+		origin("center"),
+	]); 
+
+
+	keyPress("r", () => {
+		go("game", { level: 0 });
 	});
 });
 
