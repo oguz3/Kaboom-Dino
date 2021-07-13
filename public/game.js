@@ -37,6 +37,14 @@ loadSprite("dino", "sprites/DinoSprites - mort.png", {
 		dead: { from: 11, to: 16 },
 	},
 });
+loadSprite("portal", "sprites/Purple-Portal-Sprite-Sheet.png", {
+	sliceX: 8,
+	sliceY: 3,
+	anims: {
+		idle: { from: 0, to: 7 },
+		close: { from: 16, to: 22 },
+	},
+});
 
 scene("game", ({ level }) => {
 	gravity(980);
@@ -114,20 +122,35 @@ scene("game", ({ level }) => {
 		},
 	]);
 
-	const coin = add([
-		sprite("coin", {
+	// const coin = add([
+	// 	sprite("coin", {
+	// 		animSpeed: 0.1,
+	// 	}),
+	// 	scale(1),
+	// 	solid(),
+	// 	pos(
+	// 		map.getPos(
+	// 			Math.floor(Math.random() * 20) + 1,
+	// 			Math.floor(Math.random() + Math.floor(Math.random() * 4) + 1),
+	// 		),
+	// 	),
+	// 	origin("center"),
+	// 	"coin",
+	// ]);
+
+	const portal = add([
+		sprite("portal", {
 			animSpeed: 0.1,
 		}),
 		scale(1),
-		solid(),
 		pos(
 			map.getPos(
 				Math.floor(Math.random() * 20) + 1,
-				Math.floor(Math.random() + Math.floor(Math.random() * 4) + 1),
+				Math.floor(Math.random() + Math.floor(Math.random() * 4) + 1.3),
 			),
 		),
 		origin("center"),
-		"coin",
+		"portal",
 	]);
 
 	for (let i = 0; i < Math.floor(Math.random() * 5) + 1; i++) {
@@ -191,7 +214,8 @@ scene("game", ({ level }) => {
 	]);
 
 	player.play("idle");
-	coin.play("idle");
+	//coin.play("idle");
+	portal.play("idle");
 
 	function respawn() {
 		score.value = 0;
@@ -242,13 +266,20 @@ scene("game", ({ level }) => {
 		}
 	});
 
-	player.collides("coin", (b) => {
-		destroy(b);
-		score.value += 10;
-		score.text = `score: ${score.value}`;
-		go("game", {
-			level: level++ % maps.length,
-		});
+	player.collides("portal", (b) => {
+		destroy(player);
+		portal.stop("idle")
+		portal.play("close");
+		
+		console.log(player)
+		setTimeout(() => {
+			destroy(b);
+			score.value += 10;
+			score.text = `score: ${score.value}`;
+			go("game", {
+				level: level++ % maps.length,
+			});
+		}, 690)
 	});
 
 	player.collides("worm", () => {
